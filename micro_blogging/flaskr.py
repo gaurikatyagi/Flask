@@ -63,6 +63,41 @@ def show_entries():
     entries = [dict(title = row[0], text = row[1]) for row in cursor.fetchall()]
     return render_template(template_name_or_list = "show_entries.html", entries = entries)
 
+##Adding new entries
+@app.route("/add", method = ["POST"])
+def add_entry():
+    """
+    we check that the user is logged in here (the logged_in key is present in the session and True).
+    """
+    if not session.get("logged_in"):
+        abort(401)
+    else:
+        g.db.execute("insert into entries (title, text) values (?, ?)",
+                     [request.form["title"], request.form["text"]])
+        g.db.commit()
+        flash("New entry successfully posted")
+        return redirect(url_for("show_entries"))
+
+@app.route("/login", methods = ["GET", "POST"])
+def login():
+    error = None
+    if request.method == "POST":
+        if request.form["username"] != app.config["USERNAME"]:
+            error = "Invalid Username"
+        elif request.form["password"] != app.config["PASSWORD"]:
+            error = "Invalid Password"
+        else:
+            session["logged_in"] = True
+            flash(message = "You are now logged in")
+            return redirect(url_for("show_entries"))
+    return render_template("login.html", error = error)
+
+@app.route("/logout")
+def logout():
+    session.pop("logged_in", None)
+    flash(message = "You're now logged out")
+    return redirect(url_for("show_entries"))
+
 if __name__ == "__main__":
     init_db()
     app.run()
