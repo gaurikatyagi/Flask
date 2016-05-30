@@ -18,12 +18,13 @@ PASSWORD = "defaultpass"
 #intitialize database
 """
 need a schema
-that tells them how to store that information. So before starting the server for the first
-time it's important to create that schema.
-Such a schema can be created by piping the schema.sql file into the sqlite3 command as
-follows:
+that tells them how to store that information. So before starting the server for the first time it's important to
+create that schema. Such a schema can be created by piping the schema.sql file into the sqlite3 command as follows:
 sqlite3 /tmp/flaskr.db < schema.sql
 """
+def connect_db():
+    return sqlite3.connect(app.config["DATABASE"])
+
 def init_db():
     with closing(connect_db()) as db:
         with app.open_resource("schema.sql", mode = "r") as f:
@@ -36,9 +37,6 @@ app.config.from_object(__name__)
 ##from_object() will look at the given object (if it's a string it will import it) and then
 ##look for all uppercase variables defined there
 
-def connect_db():
-    return sqlite3.connect(app.config["DATABASE"])
-
 @app.before_request
 def before_request():
     #We store our current database connection on the special g object that Flask provides
@@ -49,7 +47,7 @@ def teardown_request(exception):
     """
     after_request() are called after a request and passed the response that will be sent to the client. They have to
     return that response object or a different one. They are however not guaranteed to be executed if an exception is
-    raised, this is where functions marked with teardown_request() come in. They     get called after the response has
+    raised, this is where functions marked with teardown_request() come in. They get called after the response has
     been constructed. They are not allowed to modify the request, and their return values are ignored. If an exception
     occurred while the request was being processed, it is passed to each function; otherwise, None is passed in.
     """
