@@ -64,7 +64,7 @@ def show_entries():
     return render_template(template_name_or_list = "show_entries.html", entries = entries)
 
 ##Adding new entries
-@app.route("/add", method = ["POST"])
+@app.route("/add", methods = ["POST"])
 def add_entry():
     """
     we check that the user is logged in here (the logged_in key is present in the session and True).
