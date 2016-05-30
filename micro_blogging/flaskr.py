@@ -57,6 +57,12 @@ def teardown_request(exception):
     if db is not None:
         db.close()
 
+@app.route("/")
+def show_entries():
+    cursor = g.db.execute("select title, text from entries order by id desc")
+    entries = [dict(title = row[0], text = row[1]) for row in cursor.fetchall()]
+    return render_template(template_name_or_list = "show_entries.html", entries = entries)
+
 if __name__ == "__main__":
     init_db()
     app.run()
