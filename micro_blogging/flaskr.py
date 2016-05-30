@@ -53,7 +53,7 @@ def teardown_request(exception):
     been constructed. They are not allowed to modify the request, and their return values are ignored. If an exception
     occurred while the request was being processed, it is passed to each function; otherwise, None is passed in.
     """
-    db = getattr(object = g, name = "db", default = None)
+    db = getattr(g, "db", None)
     if db is not None:
         db.close()
 
