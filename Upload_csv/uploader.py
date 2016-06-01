@@ -3,6 +3,7 @@ import os
 
 app = Flask(__name__)
 ALLOWED_EXTENSIONS = set(["xlxs", "xls", "csv"])
+UPLOAD_FOLDER = os.path.dirname(os.path.abspath( __file__ ))
 USERNAME = "admin"
 PASSWORD = "gt"
 SECRET_KEY = "development key"
@@ -22,12 +23,13 @@ def upload_file():
 def uploader():
     if request.method == 'POST':
         # check if the post request has the file part
+
         if 'file' not in request.files:
             flash('No file part')
             return render_template("file_upload.html")
-        file = request.files['file']
         # if user does not select file, browser also
         # submit a empty part without filename
+        file = request.files['file']
         if file.filename == '':
             flash('No selected file')
             return render_template("file_upload.html")
@@ -35,6 +37,9 @@ def uploader():
             filename = file.filename
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             flash("File Uploaded")
+            return render_template("file_upload.html")
+        else:
+            flash("Wrong filetype")
             return render_template("file_upload.html")
 
 @app.route("/login", methods = ["GET", "POST"])
