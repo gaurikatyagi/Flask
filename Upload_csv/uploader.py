@@ -72,6 +72,9 @@ def csvfiles():
     flash("File Uploaded")
     return render_template("show_entries.html", entries = entries)
 
+@app.route("/analyze", methods = "POST")
+def analyze():
+    return "Hey"
 
 if __name__ == '__main__':
     app.run(debug=True)
