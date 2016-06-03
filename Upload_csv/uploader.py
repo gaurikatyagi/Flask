@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, url_for, flash, session, redirect, g
+from flask import Flask, render_template, request, url_for, flash, session, redirect
 import os
 from process_data import find_csv_filenames
 
@@ -26,11 +26,11 @@ def uploader():
         # check if the post request has the file part
         session["success"] = False
         if 'file' not in request.files:
-            flash('No file part')
+            flash("No file part")
             return render_template("file_upload.html")
         # if user does not select file, browser also
         # submit a empty part without filename
-        file = request.files['file']
+        file = request.files["file"]
         if file.filename == '':
             flash('No selected file')
             return render_template("file_upload.html")
@@ -74,7 +74,16 @@ def csvfiles():
 
 @app.route("/analyze", methods = "POST")
 def analyze():
-    return "Hey"
+    if request.method == "POST":
+        print request.select["file_name"]
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("404.html"), 404
+
+@app.errorhandler(403)
+def mistake403(code):
+    return render_template("403.html"), 403
 
 if __name__ == '__main__':
     app.run(debug=True)
