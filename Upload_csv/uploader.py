@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, url_for, flash, session, redirect
+from flask import Flask, render_template, request, url_for, flash, session, redirect, g
 import os
+from process_data import find_csv_filenames
 
 app = Flask(__name__)
 ALLOWED_EXTENSIONS = set(["xlxs", "xls", "csv"])
@@ -23,7 +24,7 @@ def upload_file():
 def uploader():
     if request.method == 'POST':
         # check if the post request has the file part
-
+        session["success"] = False
         if 'file' not in request.files:
             flash('No file part')
             return render_template("file_upload.html")
@@ -36,8 +37,10 @@ def uploader():
         if file and allowed_file(file.filename):
             filename = file.filename
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            flash("File Uploaded")
-            return render_template("file_upload.html")
+            # flash("File Uploaded")
+            session["success"] = True
+            return redirect(url_for("csvfiles"))
+            # return render_template("show_entries.html")
         else:
             flash("Wrong filetype")
             return render_template("file_upload.html")
@@ -61,6 +64,13 @@ def logout():
     session.pop("logged_in", None)
     flash(message = "You're now logged out")
     return redirect(url_for("upload_file"))
+
+@app.route("/csvfiles")
+def csvfiles():
+    file_names = find_csv_filenames()
+    entries = [dict(file = index, text = row) for index, row in enumerate(file_names)]
+    flash("File Uploaded")
+    return render_template("show_entries.html", entries = entries)
 
 
 if __name__ == '__main__':

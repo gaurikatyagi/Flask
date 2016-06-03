@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+{% block body %}
+
+{% if session.success %}
+    <ul class=entries>
+        {% for entry in entries %}
+        <li>{{entry.text}}
+        {% endfor %}
+    </ul>
+{% else %}
+    No files here so far
+{% endif %}
+
+{% endblock %}
