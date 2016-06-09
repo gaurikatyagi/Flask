@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import json
 from flask import jsonify
-from flask import render_template
+from flask import render_template, url_for
 from sklearn import preprocessing
 from sklearn import decomposition
 from sklearn.cluster import KMeans
@@ -63,7 +63,7 @@ def index():
     #Save figure
     fig_path = os.path.join(get_abs_path(), "static", "tmp", "cluster.png")
     fig.savefig(fig_path)
-    return render_template("index.html")
+    return render_template("index.html", fig = url_for("static", filename = "tmp/cluster.png"))
 
 @app.route("/head")
 def head():
