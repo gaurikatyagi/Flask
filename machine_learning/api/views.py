@@ -10,14 +10,15 @@ from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 
 
+def get_abs_path():
+    return os.path.abspath(os.path.dirname(__file__))
+
 def get_data():
-    f_name = os.path.join(os.path.abspath(os.path.dirname(__file__)), "data", "breast-cancer-wisconsin.csv")
+    f_name = os.path.join(get_abs_path(), "data", "breast-cancer-wisconsin.csv")
     columns = ["code", "clump_thickness", "size_uniformity", "shape_uniformity", "adhesion", "cell_size", "bare_nuclei",
                "bland_chromatin", "normal_nuclei", "mitosis", "class"]
     df = pd.read_csv(f_name, sep=",", header=None, names=columns, na_values="?")
     return df.dropna()
-
-
 
 @app.route("/")
 def index():
@@ -39,6 +40,7 @@ def index():
     model = KMeans(init = "k-means++", n_clusters = 2) #K-means++ ensures that the initial centroids which are chosen
     # are spaced out far apart
     model.fit(components)
+    fig = plt.figure()
     plt.scatter(x = components[:, 0], y = components[:, 1], c = model.labels_)
     centers = plt.plot(
         [model.cluster_centers_[0, 0], model.cluster_centers_[1, 0]],
@@ -56,7 +58,11 @@ def index():
     axes.set_ylim([-2, 5])
     plt.xlabel("PC1")
     plt.ylabel("PC2")
-    plt.title("Clustering of PCs ({:.2f}% Var. Explained".format(var*100))
+    plt.title("Clustering of PCs ({:.2f}% Var. Explained)".format(var*100))
+
+    #Save figure
+    fig_path = os.path.join(get_abs_path(), "static", "tmp", "cluster.png")
+    fig.savefig(fig_path)
     return render_template("index.html")
 
 @app.route("/head")
