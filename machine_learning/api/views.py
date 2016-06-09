@@ -70,3 +70,36 @@ def head():
     df = get_data().head()
     data = json.loads((df.to_json()))
     return jsonify(data)
+
+@app.route("/d3")
+def d3():
+    df = get_data()
+    X = df.ix[:, (df.columns != "class") & (df.columns != "code")].as_matrix()
+    y = df.ix[:, df.columns == "clas"].as_matrix()
+
+    # scale data
+    scaler = preprocessing.StandardScaler().fit(X)
+    scaled = scaler.transform(X)
+
+    # PCA
+    pcomp = decomposition.PCA(n_components=2)
+    pcomp.fit(scaled)
+    components = pcomp.transform(scaled)
+    var = pcomp.explained_variance_ratio_.sum()
+
+    # Kmeans
+    model = KMeans(init="k-means++", n_clusters=2)  # K-means++ ensures that the initial centroids which are chosen
+    # are spaced out far apart
+    model.fit(components)
+
+    #Generate csv
+    cluster_data = pd.DataFrame(
+        {
+            "pc1": components[:, 0],
+            "pc2": components[:, 1],
+            "labels": model.labels_
+        }
+    )
+    csv_path = os.path.join(get_abs_path(), "static", "tmp", "kmeans.csv")
+    cluster_data.to_csv(csv_path)
+    return render_template("d3.html", data_file = url_for("static", filename = "tmp/kmeans.csv"))
