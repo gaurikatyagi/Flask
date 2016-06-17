@@ -27,7 +27,7 @@ def benign_malignant():
     data_x = data.ix[:, (data.columns != "class") & (data.columns != "code")].as_matrix()
     # print data_x.shape
     y = (data.ix[:, data.columns == "class"].as_matrix()).ravel()
-    data_y = [0 if x == 2 else 1 for x in y]
+    data_y = [0 if x == 2 else 1 for x in y] #considering 2 is benign and 4 is malignant
     # print np.unique(data_y)
     # print np.unique(y)
     # print data_y.shape
@@ -42,16 +42,8 @@ def benign_malignant():
 def model_evaluation():
     model, train_x, train_y, test_x, test_y = benign_malignant()
     predicted = model.predict(test_x)
-    confusion_matrix=metric.confusion_matrix(test_y,predicted)
-    sensitivity=float(confusion_matrix[1][1])/(float(confusion_matrix[1][1])+float(confusion_matrix[1][0]))
-    specificity= float(confusion_matrix[0,0])/float(confusion_matrix[0,0]+confusion_matrix[0,1])
-    accuracy=metric.accuracy_score(test_y,predicted)
-    # f1_score=metric.f1_score(test_y,predicted)
     false_positive_rate, true_positive_rate, thresholds = metric.roc_curve(test_y, predicted)
     roc_auc = metric.auc(false_positive_rate, true_positive_rate)
-    # evaluation_dictionary = {"sensitivity": sensitivity, "specificity": specificity, "accuracy": accuracy,
-    #                          "f1_score": f1_score, "roc_auc": roc_auc}
-
     plt.figure()
     plt.plot(false_positive_rate, true_positive_rate, label = "ROC curve (area = %0.2f)" %roc_auc,
                 lw=2, color ="red", marker ='s', markerfacecolor ="blue")
@@ -65,7 +57,16 @@ def model_evaluation():
     plt.ylabel("True Positive Rate")
     filepath = os.path.join(get_abs_path(), "static", "tmp", "roc.png")
     plt.savefig(filepath)
-    #return evaluation_dictionary
+
+    confusion_matrix = metric.confusion_matrix(test_y, predicted)
+
+    sensitivity = float(confusion_matrix[1][1]) / (float(confusion_matrix[1][1]) + float(confusion_matrix[1][0]))
+    specificity = float(confusion_matrix[0, 0]) / float(confusion_matrix[0, 0] + confusion_matrix[0, 1])
+    accuracy = metric.accuracy_score(test_y, predicted)
+    f1_score = metric.f1_score(test_y, predicted)
+    evaluation_dictionary = {"sensitivity": sensitivity, "specificity": specificity, "accuracy": accuracy,
+                             "f1_score": f1_score, "roc_auc": roc_auc}
+    return confusion_matrix, evaluation_dictionary
 
 @app.route("/")
 def index():
@@ -153,6 +154,15 @@ def d3():
 
 @app.route("/prediction")
 def prediction():
-    eval_dict = model_evaluation()
+    conf_dict, eval_dict = model_evaluation()
     return render_template("prediction.html", fig = url_for("static", filename = "tmp/roc.png"),
                            model_type = "Logistic Regression")
+
+@app.route("/api/v1/prediction_confusion_matrix")
+def prediction_confusion_matrix():
+    conf_dict, eval_dict = model_evaluation()
+    c_dict = pd.DataFrame(data = conf_dict,
+                          index = ("0", "1"),
+                          columns = ("0", "1"))
+    data = json.loads((c_dict.to_json()))
+    return jsonify(data)
