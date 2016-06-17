@@ -8,7 +8,9 @@ from sklearn import preprocessing
 from sklearn import decomposition
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
-
+from sklearn.cross_validation import train_test_split
+import sklearn.linear_model as linear_model
+import sklearn.metrics as metric
 
 def get_abs_path():
     return os.path.abspath(os.path.dirname(__file__))
@@ -20,11 +22,56 @@ def get_data():
     df = pd.read_csv(f_name, sep=",", header=None, names=columns, na_values="?")
     return df.dropna()
 
+def benign_malignant():
+    data = get_data()
+    data_x = data.ix[:, (data.columns != "class") & (data.columns != "code")].as_matrix()
+    # print data_x.shape
+    y = (data.ix[:, data.columns == "class"].as_matrix()).ravel()
+    data_y = [0 if x == 2 else 1 for x in y]
+    # print np.unique(data_y)
+    # print np.unique(y)
+    # print data_y.shape
+    #remvoing code because it is just an identifier and might be coded according to
+    train_x, test_x, train_y, test_y = train_test_split(data_x, data_y, test_size = 0.4, random_state = 9)
+    # print train_x.shape, train_y.shape
+    # print test_x.shape, type(test_x), test_y.shape
+    lrc = linear_model.LogisticRegression()
+    lrc = lrc.fit(train_x, train_y)
+    return lrc, train_x, train_y, test_x, test_y
+
+def model_evaluation():
+    model, train_x, train_y, test_x, test_y = benign_malignant()
+    predicted = model.predict(test_x)
+    confusion_matrix=metric.confusion_matrix(test_y,predicted)
+    sensitivity=float(confusion_matrix[1][1])/(float(confusion_matrix[1][1])+float(confusion_matrix[1][0]))
+    specificity= float(confusion_matrix[0,0])/float(confusion_matrix[0,0]+confusion_matrix[0,1])
+    accuracy=metric.accuracy_score(test_y,predicted)
+    # f1_score=metric.f1_score(test_y,predicted)
+    false_positive_rate, true_positive_rate, thresholds = metric.roc_curve(test_y, predicted)
+    roc_auc = metric.auc(false_positive_rate, true_positive_rate)
+    # evaluation_dictionary = {"sensitivity": sensitivity, "specificity": specificity, "accuracy": accuracy,
+    #                          "f1_score": f1_score, "roc_auc": roc_auc}
+
+    plt.figure()
+    plt.plot(false_positive_rate, true_positive_rate, label = "ROC curve (area = %0.2f)" %roc_auc,
+                lw=2, color ="red", marker ='s', markerfacecolor ="blue")
+    plt.plot([0,1],[0,1], "k--")
+    #setting xlimit and ylimit to a value lesser than 0 to show the beginning of the line and the end of the curve resp
+    plt.xlim([-0.005, 1.0])
+    plt.ylim([0.0, 1.005])
+    plt.title("Receiver Operating Characteristics for Testing Data- Logistic Regression")
+    plt.legend(loc = "lower right")
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    filepath = os.path.join(get_abs_path(), "static", "tmp", "roc.png")
+    plt.savefig(filepath)
+    #return evaluation_dictionary
+
 @app.route("/")
 def index():
     df = get_data()
     X = df.ix[:, (df.columns != "class") & (df.columns != "code")].as_matrix()
-    y = df.ix[:, df.columns == "clas"].as_matrix()
+    y = df.ix[:, df.columns == "class"].as_matrix()
 
     #scale data
     scaler = preprocessing.StandardScaler().fit(X)
@@ -75,7 +122,7 @@ def head():
 def d3():
     df = get_data()
     X = df.ix[:, (df.columns != "class") & (df.columns != "code")].as_matrix()
-    y = df.ix[:, df.columns == "clas"].as_matrix()
+    y = df.ix[:, df.columns == "class"].as_matrix()
 
     # scale data
     scaler = preprocessing.StandardScaler().fit(X)
@@ -103,3 +150,9 @@ def d3():
     csv_path = os.path.join(get_abs_path(), "static", "tmp", "kmeans.csv")
     cluster_data.to_csv(csv_path)
     return render_template("d3.html", data_file = url_for("static", filename = "tmp/kmeans.csv"))
+
+@app.route("/prediction")
+def prediction():
+    eval_dict = model_evaluation()
+    return render_template("prediction.html", fig = url_for("static", filename = "tmp/roc.png"),
+                           model_type = "Logistic Regression")
