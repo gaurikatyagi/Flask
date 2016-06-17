@@ -161,8 +161,13 @@ def prediction():
 @app.route("/api/v1/prediction_confusion_matrix")
 def prediction_confusion_matrix():
     conf_dict, eval_dict = model_evaluation()
-    c_dict = pd.DataFrame(data = conf_dict,
-                          index = ("0", "1"),
-                          columns = ("0", "1"))
+    tn = conf_dict[0][0]
+    tp = conf_dict[1][1]
+    fp = conf_dict[0][1]
+    fn = conf_dict[1][0]
+    c_dict = pd.DataFrame({"logistic regression": {"fp":fp, "tp":tp, "fn":fn, "tn":tn}})
+    # c_dict = pd.DataFrame(data = conf_dict,
+    #                       index = ("0", "1"),
+    #                       columns = ("0", "1"))
     data = json.loads((c_dict.to_json()))
     return jsonify(data)
