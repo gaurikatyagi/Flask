@@ -56,9 +56,10 @@ def benign_malignant():
 
 def model_evaluation():
     """
-
+    This function will plot the ROC and save it to a file in the temp folder. It also estimates the f1scores and other
+    model evaluation parameters.
     :return: This function returns the confusion matrix and a dictionary object of the evaluation parameters: sensitivity,
-    
+    specificity, roc_auc, f1-score and accuracy
     """
     model, train_x, train_y, test_x, test_y = benign_malignant()
     predicted = model.predict(test_x)
