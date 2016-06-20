@@ -13,9 +13,17 @@ import sklearn.linear_model as linear_model
 import sklearn.metrics as metric
 
 def get_abs_path():
+    """
+    This function will get the path to the directory.
+    :return: Returns string object conatining the path of the directory which contains this file
+    """
     return os.path.abspath(os.path.dirname(__file__))
 
 def get_data():
+    """
+    This function returns the DataFrame with all NA's removed. This reads a csv file. Add column names to this DataFrame.
+    :return: Returns a clean numpy DataFrame of the csv file.
+    """
     f_name = os.path.join(get_abs_path(), "data", "breast-cancer-wisconsin.csv")
     columns = ["code", "clump_thickness", "size_uniformity", "shape_uniformity", "adhesion", "cell_size", "bare_nuclei",
                "bland_chromatin", "normal_nuclei", "mitosis", "class"]
@@ -23,23 +31,35 @@ def get_data():
     return df.dropna()
 
 def benign_malignant():
+    """
+    This function fits a logistic regression model after splitting the data into testing and training datasets. The
+     test size of the data is 40% of the original data. The y column has been recoded into boolean values of 0 for benign
+     (intially coded as 2) and 1 for malignant (initially coded as 4)
+    :return: Returns an instance of the logistic regression model with train data fit into it, test and train feature
+    columns and test and train classification columns
+    """
     data = get_data()
     data_x = data.ix[:, (data.columns != "class") & (data.columns != "code")].as_matrix()
     # print data_x.shape
     y = (data.ix[:, data.columns == "class"].as_matrix()).ravel()
     data_y = [0 if x == 2 else 1 for x in y] #considering 2 is benign and 4 is malignant
-    # print np.unique(data_y)
-    # print np.unique(y)
-    # print data_y.shape
     #remvoing code because it is just an identifier and might be coded according to
-    train_x, test_x, train_y, test_y = train_test_split(data_x, data_y, test_size = 0.4, random_state = 9)
-    # print train_x.shape, train_y.shape
-    # print test_x.shape, type(test_x), test_y.shape
+
+    #not applying PCA because there aren't too many features
+    scaler = preprocessing.StandardScaler().fit(data_x)
+    scaled = scaler.transform(data_x)
+
+    train_x, test_x, train_y, test_y = train_test_split(scaled, data_y, test_size = 0.4, random_state = 9)
     lrc = linear_model.LogisticRegression()
     lrc = lrc.fit(train_x, train_y)
     return lrc, train_x, train_y, test_x, test_y
 
 def model_evaluation():
+    """
+
+    :return: This function returns the confusion matrix and a dictionary object of the evaluation parameters: sensitivity,
+    
+    """
     model, train_x, train_y, test_x, test_y = benign_malignant()
     predicted = model.predict(test_x)
     false_positive_rate, true_positive_rate, thresholds = metric.roc_curve(test_y, predicted)
@@ -51,7 +71,7 @@ def model_evaluation():
     #setting xlimit and ylimit to a value lesser than 0 to show the beginning of the line and the end of the curve resp
     plt.xlim([-0.005, 1.0])
     plt.ylim([0.0, 1.005])
-    plt.title("Receiver Operating Characteristics for Testing Data- Logistic Regression")
+    plt.title("Receiver Operating Characteristics")
     plt.legend(loc = "lower right")
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
@@ -166,8 +186,55 @@ def prediction_confusion_matrix():
     fp = conf_dict[0][1]
     fn = conf_dict[1][0]
     c_dict = pd.DataFrame({"logistic regression": {"fp":fp, "tp":tp, "fn":fn, "tn":tn}})
-    # c_dict = pd.DataFrame(data = conf_dict,
-    #                       index = ("0", "1"),
-    #                       columns = ("0", "1"))
     data = json.loads((c_dict.to_json()))
     return jsonify(data)
+
+@app.route("/api/v1/original_bar")
+def original_bar():
+    df = get_data()
+    y = df.ix[:, df.columns == "class"].as_matrix()
+
+    # Generate csv
+    class_data = pd.DataFrame(
+        {
+            "Case": ["0", "1"],
+            "pc2": y,
+        }
+    )
+    csv_path = os.path.join(get_abs_path(), "static", "tmp", "logistic.csv")
+    class_data.to_csv(csv_path)
+    # return render_template("barchart.html", data_file=url_for("static", filename="tmp/logistic.csv"))
+    return render_template("barchart.html")
+
+@app.route("/scatter_d3")
+def scatter_d3():
+    df = get_data()
+    X = df.ix[:, (df.columns != "class") & (df.columns != "code")].as_matrix()
+    y = df.ix[:, df.columns == "class"].as_matrix()
+
+    # scale data
+    scaler = preprocessing.StandardScaler().fit(X)
+    scaled = scaler.transform(X)
+
+    # PCA
+    pcomp = decomposition.PCA(n_components=2)
+    pcomp.fit(scaled)
+    components = pcomp.transform(scaled)
+    var = pcomp.explained_variance_ratio_.sum()
+
+    # Kmeans
+    model = KMeans(init="k-means++", n_clusters=2)  # K-means++ ensures that the initial centroids which are chosen
+    # are spaced out far apart
+    model.fit(components)
+
+    #Generate csv
+    cluster_data = pd.DataFrame(
+        {
+            "pc1": components[:, 0],
+            "pc2": components[:, 1],
+            "labels": model.labels_
+        }
+    )
+    csv_path = os.path.join(get_abs_path(), "static", "tmp", "kmeans.csv")
+    cluster_data.to_csv(csv_path)
+    return render_template("d3.html", data_file = url_for("static", filename = "tmp/kmeans.csv"))
