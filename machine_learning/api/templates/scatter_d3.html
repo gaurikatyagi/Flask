@@ -40,9 +40,9 @@ circle {
 <script src="//d3js.org/d3.v3.min.js"></script>
 <script>
 
-var width = 960,
-    size = 230,
-    padding = 20;
+var width = 480,
+    size = 120,
+    padding = 10;
 
 var x = d3.scale.linear()
     .range([padding / 2, size - padding / 2]);
@@ -53,12 +53,12 @@ var y = d3.scale.linear()
 var xAxis = d3.svg.axis()
     .scale(x)
     .orient("bottom")
-    .ticks(6);
+    .ticks(4);
 
 var yAxis = d3.svg.axis()
     .scale(y)
     .orient("left")
-    .ticks(6);
+    .ticks(4);
 
 var color = d3.scale.category10();
 
@@ -107,7 +107,7 @@ d3.csv("{{ data_file }}", function(error, data) {
   cell.filter(function(d) { return d.i === d.j; }).append("text")
       .attr("x", padding)
       .attr("y", padding)
-      .attr("dy", ".71em")
+      .attr("dy", ".40em")
       .text(function(d) { return d.x; });
 
   function plot(p) {
@@ -128,7 +128,7 @@ d3.csv("{{ data_file }}", function(error, data) {
       .enter().append("circle")
         .attr("cx", function(d) { return x(d[p.x]); })
         .attr("cy", function(d) { return y(d[p.y]); })
-        .attr("r", 4)
+        .attr("r", 2)
         .style("fill", function(d) { return color(d.classification); });
   }
 });
