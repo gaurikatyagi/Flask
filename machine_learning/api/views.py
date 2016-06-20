@@ -26,7 +26,7 @@ def get_data():
     """
     f_name = os.path.join(get_abs_path(), "data", "breast-cancer-wisconsin.csv")
     columns = ["code", "clump_thickness", "size_uniformity", "shape_uniformity", "adhesion", "cell_size", "bare_nuclei",
-               "bland_chromatin", "normal_nuclei", "mitosis", "class"]
+               "bland_chromatin", "normal_nuclei", "mitosis", "classification"]
     df = pd.read_csv(f_name, sep=",", header=None, names=columns, na_values="?")
     return df.dropna()
 
@@ -39,9 +39,9 @@ def benign_malignant():
     columns and test and train classification columns
     """
     data = get_data()
-    data_x = data.ix[:, (data.columns != "class") & (data.columns != "code")].as_matrix()
+    data_x = data.ix[:, (data.columns != "classification") & (data.columns != "code")].as_matrix()
     # print data_x.shape
-    y = (data.ix[:, data.columns == "class"].as_matrix()).ravel()
+    y = (data.ix[:, data.columns == "classification"].as_matrix()).ravel()
     data_y = [0 if x == 2 else 1 for x in y] #considering 2 is benign and 4 is malignant
     #remvoing code because it is just an identifier and might be coded according to
 
@@ -92,8 +92,8 @@ def model_evaluation():
 @app.route("/")
 def index():
     df = get_data()
-    X = df.ix[:, (df.columns != "class") & (df.columns != "code")].as_matrix()
-    y = df.ix[:, df.columns == "class"].as_matrix()
+    X = df.ix[:, (df.columns != "classification") & (df.columns != "code")].as_matrix()
+    y = df.ix[:, df.columns == "classification"].as_matrix()
 
     #scale data
     scaler = preprocessing.StandardScaler().fit(X)
@@ -143,8 +143,8 @@ def head():
 @app.route("/d3")
 def d3():
     df = get_data()
-    X = df.ix[:, (df.columns != "class") & (df.columns != "code")].as_matrix()
-    y = df.ix[:, df.columns == "class"].as_matrix()
+    X = df.ix[:, (df.columns != "classification") & (df.columns != "code")].as_matrix()
+    y = df.ix[:, df.columns == "classification"].as_matrix()
 
     # scale data
     scaler = preprocessing.StandardScaler().fit(X)
@@ -190,52 +190,15 @@ def prediction_confusion_matrix():
     data = json.loads((c_dict.to_json()))
     return jsonify(data)
 
-@app.route("/api/v1/original_bar")
-def original_bar():
-    df = get_data()
-    y = df.ix[:, df.columns == "class"].as_matrix()
-
-    # Generate csv
-    class_data = pd.DataFrame(
-        {
-            "Case": ["0", "1"],
-            "pc2": y,
-        }
-    )
-    csv_path = os.path.join(get_abs_path(), "static", "tmp", "logistic.csv")
-    class_data.to_csv(csv_path)
-    # return render_template("barchart.html", data_file=url_for("static", filename="tmp/logistic.csv"))
-    return render_template("barchart.html")
-
 @app.route("/scatter_d3")
 def scatter_d3():
     df = get_data()
-    X = df.ix[:, (df.columns != "class") & (df.columns != "code")].as_matrix()
-    y = df.ix[:, df.columns == "class"].as_matrix()
-
-    # scale data
-    scaler = preprocessing.StandardScaler().fit(X)
-    scaled = scaler.transform(X)
-
-    # PCA
-    pcomp = decomposition.PCA(n_components=2)
-    pcomp.fit(scaled)
-    components = pcomp.transform(scaled)
-    var = pcomp.explained_variance_ratio_.sum()
-
-    # Kmeans
-    model = KMeans(init="k-means++", n_clusters=2)  # K-means++ ensures that the initial centroids which are chosen
-    # are spaced out far apart
-    model.fit(components)
-
-    #Generate csv
-    cluster_data = pd.DataFrame(
-        {
-            "pc1": components[:, 0],
-            "pc2": components[:, 1],
-            "labels": model.labels_
-        }
-    )
-    csv_path = os.path.join(get_abs_path(), "static", "tmp", "kmeans.csv")
-    cluster_data.to_csv(csv_path)
-    return render_template("d3.html", data_file = url_for("static", filename = "tmp/kmeans.csv"))
+    X = df.ix[:, (df.columns != "code")]
+    X_class = X["classification"]
+    # print X.columns
+    X["classification"] = ["benign" if x == 2 else "malignant" for x in X_class]
+    # X.head = None
+    # print df["classification"]
+    csv_path = os.path.join(get_abs_path(), "static", "tmp", "data_scatter.csv")
+    X.to_csv(csv_path)
+    return render_template("scatter_d3.html", data_file = url_for("static", filename = "tmp/data_scatter.csv"))
